@@ -179,6 +179,7 @@ cl_args=(
   --p2p.laddr "tcp://0.0.0.0:${CL_P2P_PORT}"
   --chaincfg.kzg.trusted-setup-path /opt/0g/kzg-trusted-setup.json
   --chaincfg.engine.jwt-secret-path "${JWT_FILE}"
+  --chaincfg.engine.rpc-dial-url "http://localhost:${AUTH_RPC_PORT}"
   --chaincfg.block-store-service.enabled
   --home "${CL_HOME}"
 )
