@@ -41,9 +41,9 @@ services:
       - GETH_EXTRA_FLAGS=${GETH_EXTRA_FLAGS:-}
       - CL_EXTRA_FLAGS=${CL_EXTRA_FLAGS:-}
     ports:
-      - ${GETH_P2P_PORT:-30303}:30303/tcp
-      - ${GETH_P2P_PORT:-30303}:30303/udp
-      - ${CL_P2P_PORT:-26656}:26656/tcp
+      - ${GETH_P2P_PORT:-30303}:${GETH_P2P_PORT:-30303}/tcp
+      - ${GETH_P2P_PORT:-30303}:${GETH_P2P_PORT:-30303}/udp
+      - ${CL_P2P_PORT:-26656}:${CL_P2P_PORT:-26656}/tcp
     <<: *logging
     healthcheck:
       test:
@@ -68,7 +68,7 @@ services:
       - traefik.http.routers.${RPC_HOST:-0g}lb.rule=Host(`${RPC_LB:-0g-lb}.${DOMAIN}`)
       - traefik.http.routers.${RPC_HOST:-0g}lb.tls.certresolver=letsencrypt
       - traefik.http.routers.${RPC_HOST:-0g}lb.service=${RPC_LB:-0g-lb}
-      - traefik.http.services.${RPC_LB:-0g-lb}.loadbalancer.server.port=8545
+      - traefik.http.services.${RPC_LB:-0g-lb}.loadbalancer.server.port=${RPC_PORT:-8545}
       - traefik.http.routers.${WS_HOST:-0gws}.entrypoints=websecure
       - traefik.http.routers.${WS_HOST:-0gws}.rule=Host(`${WS_HOST:-0gws}.${DOMAIN}`)
       - traefik.http.routers.${WS_HOST:-0gws}.tls.certresolver=letsencrypt
@@ -77,7 +77,7 @@ services:
       - traefik.http.routers.${WS_HOST:-0gws}lb.rule=Host(`${WS_LB:-0gws-lb}.${DOMAIN}`)
       - traefik.http.routers.${WS_HOST:-0gws}lb.tls.certresolver=letsencrypt
       - traefik.http.routers.${WS_HOST:-0gws}lb.service=${WS_LB:-0gws-lb}
-      - traefik.http.services.${WS_LB:-0gws-lb}.loadbalancer.server.port=8546
+      - traefik.http.services.${WS_LB:-0gws-lb}.loadbalancer.server.port=${WS_PORT:-8546}
       - metrics.scrape=true
       - metrics.port=${GETH_METRICS_PORT:-9001}
       - metrics.path=/debug/metrics/prometheus

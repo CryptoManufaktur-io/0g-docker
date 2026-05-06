@@ -79,7 +79,7 @@ Production inventory should set `P2P_EXTERNAL_IP` to the host public IP.
 | `CL_P2P_PORT` | `26656` | 0gchaind P2P |
 | `CL_METRICS_PORT` | `26660` | 0gchaind Prometheus metrics |
 
-Only P2P ports are published by the base compose file. Use `rpc-shared.yml` for local-only RPC/debug ports and `ext-network.yml` for Traefik.
+Only P2P ports are published by the base compose file. Use `rpc-shared.yml` for local-only RPC/debug ports and `ext-network.yml` for Traefik. Port variables set both the container listen port and the published host port.
 
 ## Commands
 
