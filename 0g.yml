@@ -1,0 +1,88 @@
+x-logging: &logging
+  logging:
+    driver: json-file
+    options:
+      max-size: "100m"
+      max-file: "3"
+      tag: '{{.ImageName}}|{{.Name}}|{{.ImageFullID}}|{{.FullID}}'
+
+services:
+  node:
+    build:
+      context: ./node
+      dockerfile: Dockerfile.binary
+      args:
+        - ZEROG_VERSION=${ZEROG_VERSION}
+        - ZEROG_RELEASE_SHA256=${ZEROG_RELEASE_SHA256}
+    image: 0g-node:local
+    pull_policy: build
+    platform: linux/amd64
+    container_name: ${PROJECT_NAME}-node
+    restart: unless-stopped
+    stop_grace_period: 10m
+    volumes:
+      - 0g-data:/data
+    environment:
+      - DATA_DIR=/data
+      - NETWORK=${NETWORK:-aristotle}
+      - CHAIN_ID=${CHAIN_ID:-16661}
+      - MONIKER=${MONIKER:-0g-node}
+      - SNAPSHOT=${SNAPSHOT:-}
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+      - RPC_PORT=${RPC_PORT:-8545}
+      - WS_PORT=${WS_PORT:-8546}
+      - AUTH_RPC_PORT=${AUTH_RPC_PORT:-8551}
+      - GETH_P2P_PORT=${GETH_P2P_PORT:-30303}
+      - GETH_METRICS_PORT=${GETH_METRICS_PORT:-9001}
+      - CL_RPC_PORT=${CL_RPC_PORT:-26657}
+      - CL_P2P_PORT=${CL_P2P_PORT:-26656}
+      - CL_METRICS_PORT=${CL_METRICS_PORT:-26660}
+      - P2P_EXTERNAL_IP=${P2P_EXTERNAL_IP:-}
+      - GETH_EXTRA_FLAGS=${GETH_EXTRA_FLAGS:-}
+      - CL_EXTRA_FLAGS=${CL_EXTRA_FLAGS:-}
+    ports:
+      - ${GETH_P2P_PORT:-30303}:30303/tcp
+      - ${GETH_P2P_PORT:-30303}:30303/udp
+      - ${CL_P2P_PORT:-26656}:26656/tcp
+    <<: *logging
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - >-
+          curl -sf -X POST
+          -H 'Content-Type: application/json'
+          -d '{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":1}'
+          http://localhost:${RPC_PORT:-8545} | grep -q '"result"'
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 120s
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=${DOCKER_EXT_NETWORK}
+      - traefik.http.routers.${RPC_HOST:-0g}.entrypoints=websecure
+      - traefik.http.routers.${RPC_HOST:-0g}.rule=Host(`${RPC_HOST:-0g}.${DOMAIN}`)
+      - traefik.http.routers.${RPC_HOST:-0g}.tls.certresolver=letsencrypt
+      - traefik.http.routers.${RPC_HOST:-0g}.service=${RPC_LB:-0g-lb}
+      - traefik.http.routers.${RPC_HOST:-0g}lb.entrypoints=websecure
+      - traefik.http.routers.${RPC_HOST:-0g}lb.rule=Host(`${RPC_LB:-0g-lb}.${DOMAIN}`)
+      - traefik.http.routers.${RPC_HOST:-0g}lb.tls.certresolver=letsencrypt
+      - traefik.http.routers.${RPC_HOST:-0g}lb.service=${RPC_LB:-0g-lb}
+      - traefik.http.services.${RPC_LB:-0g-lb}.loadbalancer.server.port=8545
+      - traefik.http.routers.${WS_HOST:-0gws}.entrypoints=websecure
+      - traefik.http.routers.${WS_HOST:-0gws}.rule=Host(`${WS_HOST:-0gws}.${DOMAIN}`)
+      - traefik.http.routers.${WS_HOST:-0gws}.tls.certresolver=letsencrypt
+      - traefik.http.routers.${WS_HOST:-0gws}.service=${WS_LB:-0gws-lb}
+      - traefik.http.routers.${WS_HOST:-0gws}lb.entrypoints=websecure
+      - traefik.http.routers.${WS_HOST:-0gws}lb.rule=Host(`${WS_LB:-0gws-lb}.${DOMAIN}`)
+      - traefik.http.routers.${WS_HOST:-0gws}lb.tls.certresolver=letsencrypt
+      - traefik.http.routers.${WS_HOST:-0gws}lb.service=${WS_LB:-0gws-lb}
+      - traefik.http.services.${WS_LB:-0gws-lb}.loadbalancer.server.port=8546
+      - metrics.scrape=true
+      - metrics.port=${GETH_METRICS_PORT:-9001}
+      - metrics.path=/debug/metrics/prometheus
+      - metrics.instance=geth
+      - metrics.network=${NETWORK:-aristotle}
+
+volumes:
+  0g-data:

@@ -1,0 +1,6 @@
+.env
+.env.bak
+.env.partial
+.env.source
+custom.yml
+data/

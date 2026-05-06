@@ -1,0 +1,10 @@
+services:
+  node:
+    networks:
+      - default
+      - ext-network
+
+networks:
+  ext-network:
+    external: true
+    name: ${DOCKER_EXT_NETWORK}

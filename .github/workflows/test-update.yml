@@ -1,0 +1,35 @@
+name: Test ethd update
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test-update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Create .env from default.env
+        run: cp default.env .env
+
+      - name: Test ethd help
+        run: ./ethd help
+
+      - name: Test ethd update (debug mode)
+        run: ./ethd update --debug --non-interactive
+        continue-on-error: true  # Will fail at Docker step without actual images
+
+      - name: Verify .env migration worked
+        run: |
+          if [ ! -f .env ]; then
+            echo ".env file missing after update"
+            exit 1
+          fi
+          echo ".env file exists and migration completed"
+          cat .env

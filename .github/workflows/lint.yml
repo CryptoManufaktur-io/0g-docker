@@ -1,0 +1,27 @@
+name: Lint sources
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install pre-commit
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y pre-commit shellcheck
+
+      - name: Run pre-commit hooks
+        run: pre-commit run --all-files
+
+      - name: Shellcheck ethd
+        run: shellcheck ethd
+
+      - name: Shellcheck check_sync.sh
+        run: shellcheck scripts/check_sync.sh
