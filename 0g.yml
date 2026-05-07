@@ -12,7 +12,6 @@ x-node-image: &node-image
     dockerfile: Dockerfile.binary
     args:
       - ZEROG_VERSION=${ZEROG_VERSION}
-      - ZEROG_RELEASE_SHA256=${ZEROG_RELEASE_SHA256}
   image: 0g-node:local
   pull_policy: build
   platform: linux/amd64

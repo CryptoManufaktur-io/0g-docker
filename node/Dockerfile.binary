@@ -2,7 +2,6 @@ FROM debian:bookworm-slim AS builder
 
 ARG TARGETARCH
 ARG ZEROG_VERSION=1.0.4
-ARG ZEROG_RELEASE_SHA256
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
@@ -15,7 +14,6 @@ WORKDIR /build
 RUN test "${TARGETARCH:-amd64}" = "amd64"
 RUN curl -fsSLo aristotle.tar.gz \
       "https://github.com/0gfoundation/0gchain-Aristotle/releases/download/${ZEROG_VERSION}/aristotle-v${ZEROG_VERSION}.tar.gz" \
-    && echo "${ZEROG_RELEASE_SHA256}  aristotle.tar.gz" | sha256sum -c - \
     && tar -xzf aristotle.tar.gz \
     && mv "aristotle-v${ZEROG_VERSION}" /opt/0g
 

@@ -14,7 +14,7 @@ This is 0g-docker v1.0.0
 | Public RPC | `https://evmrpc.0g.ai` |
 | Explorer | `https://chainscan.0g.ai` |
 
-The image packages both upstream 0G clients from the pinned Aristotle release archive:
+The image packages both upstream 0G clients from the versioned Aristotle release archive:
 
 - `0gchaind` consensus client
 - `geth` execution client with archive config
@@ -72,7 +72,6 @@ Key variables in `.env`:
 | Variable | Description | Default |
 | --- | --- | --- |
 | `ZEROG_VERSION` | Aristotle release tag without the leading `v` | `1.0.4` |
-| `ZEROG_RELEASE_SHA256` | SHA256 for the release archive | pinned in `default.env` |
 | `SNAPSHOT` | Optional initial archive snapshot URL | empty |
 | `MONIKER` | 0gchaind node moniker | `0g-node` |
 | `GETH_ENGINE_HOST` | Hostname 0gchaind uses for geth engine RPC | `geth` |
