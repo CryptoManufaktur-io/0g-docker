@@ -67,12 +67,6 @@ For production with Traefik:
 COMPOSE_FILE=0g.yml:ext-network.yml ./0gd up
 ```
 
-For production with Traefik and self-updating Cloudflare A records:
-
-```bash
-COMPOSE_FILE=0g.yml:ext-network.yml:cf-ddns.yml ./0gd up
-```
-
 ## Configuration
 
 Key variables in `.env`:
@@ -87,10 +81,6 @@ Key variables in `.env`:
 | `INIT_WAIT_TIMEOUT` | Seconds geth and 0gchaind wait for the init marker before exiting | `600` |
 | `RPC_HOST` | Traefik HTTP RPC hostname prefix | `0g` |
 | `WS_HOST` | Traefik WebSocket hostname prefix | `0gws` |
-| `CF_DNS_API_TOKEN` | Cloudflare token used by `cf-ddns.yml` | empty |
-| `CF_ZONE_ID` | Cloudflare zone ID used by `cf-ddns.yml` | empty |
-| `DDNS_PROXY` | Whether Cloudflare should proxy records created by `cf-ddns.yml` | `false` |
-| `DDNS_TAG` | `qmcgaw/ddns-updater` image tag | `v2` |
 | `PUBLIC_RPC` | Reference endpoint used by `check-sync` | `https://evmrpc.0g.ai` |
 
 Production inventory can leave `P2P_EXTERNAL_IP` empty when the container has outbound HTTPS to the public IPv4 lookup endpoints. Startup fails if all lookup endpoints are unreachable. Set it to a fixed IPv4 to pin the advertised address, or `none` to skip explicit advertisement. Do not use Docker service names such as `geth`; external P2P peers must receive a routable host address.
@@ -110,7 +100,7 @@ Production inventory can leave `P2P_EXTERNAL_IP` empty when the container has ou
 
 Only P2P ports are published by the base compose file. Use `rpc-shared.yml` for local-only RPC/debug ports and `ext-network.yml` for Traefik. Port variables set both the container listen port and the published host port.
 
-`cf-ddns.yml` runs `qmcgaw/ddns-updater` and maintains IPv4 Cloudflare A records for `RPC_HOST.DOMAIN` and `WS_HOST.DOMAIN`. It is intentionally IPv4-only because some production RPC hosts do not have public IPv6 connectivity.
+Service DNS is managed outside this repo. In CMF production, host-level DNS such as `rpc2-a.cryptomanufaktur.net` is maintained by the host stack, and service hostnames such as `0g-a.cryptomanufaktur.net` and `0gws-a.cryptomanufaktur.net` are Cloudflare CNAME records pointing to the host record.
 
 ## Commands
 
@@ -160,7 +150,6 @@ pre-commit run --all-files
 docker compose --env-file default.env -f 0g.yml config
 docker compose --env-file default.env -f 0g.yml -f rpc-shared.yml config
 docker compose --env-file default.env -f 0g.yml -f ext-network.yml config
-docker compose --env-file default.env -f 0g.yml -f ext-network.yml -f cf-ddns.yml config
 docker compose --env-file default.env -f 0g.yml run --rm --no-deps geth sh -lc 'curl -4fsS --max-time 5 https://ifconfig.me/ip'
 ```
 
