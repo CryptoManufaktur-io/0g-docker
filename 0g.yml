@@ -6,45 +6,64 @@ x-logging: &logging
       max-file: "3"
       tag: '{{.ImageName}}|{{.Name}}|{{.ImageFullID}}|{{.FullID}}'
 
+x-node-image: &node-image
+  build:
+    context: ./node
+    dockerfile: Dockerfile.binary
+    args:
+      - ZEROG_VERSION=${ZEROG_VERSION}
+      - ZEROG_RELEASE_SHA256=${ZEROG_RELEASE_SHA256}
+  image: 0g-node:local
+  pull_policy: build
+  platform: linux/amd64
+
+x-node-environment: &node-environment
+  - DATA_DIR=/data
+  - NETWORK=${NETWORK:-aristotle}
+  - CHAIN_ID=${CHAIN_ID:-16661}
+  - MONIKER=${MONIKER:-0g-node}
+  - SNAPSHOT=${SNAPSHOT:-}
+  - LOG_LEVEL=${LOG_LEVEL:-info}
+  - RPC_PORT=${RPC_PORT:-8545}
+  - WS_PORT=${WS_PORT:-8546}
+  - AUTH_RPC_PORT=${AUTH_RPC_PORT:-8551}
+  - GETH_ENGINE_HOST=${GETH_ENGINE_HOST:-geth}
+  - GETH_P2P_PORT=${GETH_P2P_PORT:-30303}
+  - GETH_METRICS_PORT=${GETH_METRICS_PORT:-9001}
+  - CL_RPC_PORT=${CL_RPC_PORT:-26657}
+  - CL_P2P_PORT=${CL_P2P_PORT:-26656}
+  - CL_METRICS_PORT=${CL_METRICS_PORT:-26660}
+  - P2P_EXTERNAL_IP=${P2P_EXTERNAL_IP:-}
+  - GETH_EXTRA_FLAGS=${GETH_EXTRA_FLAGS:-}
+  - CL_EXTRA_FLAGS=${CL_EXTRA_FLAGS:-}
+
 services:
-  node:
-    build:
-      context: ./node
-      dockerfile: Dockerfile.binary
-      args:
-        - ZEROG_VERSION=${ZEROG_VERSION}
-        - ZEROG_RELEASE_SHA256=${ZEROG_RELEASE_SHA256}
-    image: 0g-node:local
-    pull_policy: build
-    platform: linux/amd64
-    container_name: ${PROJECT_NAME}-node
-    restart: unless-stopped
-    stop_grace_period: 10m
+  init:
+    <<: [*node-image, *logging]
+    container_name: ${PROJECT_NAME}-init
+    restart: "no"
     volumes:
       - 0g-data:/data
-    environment:
-      - DATA_DIR=/data
-      - NETWORK=${NETWORK:-aristotle}
-      - CHAIN_ID=${CHAIN_ID:-16661}
-      - MONIKER=${MONIKER:-0g-node}
-      - SNAPSHOT=${SNAPSHOT:-}
-      - LOG_LEVEL=${LOG_LEVEL:-info}
-      - RPC_PORT=${RPC_PORT:-8545}
-      - WS_PORT=${WS_PORT:-8546}
-      - AUTH_RPC_PORT=${AUTH_RPC_PORT:-8551}
-      - GETH_P2P_PORT=${GETH_P2P_PORT:-30303}
-      - GETH_METRICS_PORT=${GETH_METRICS_PORT:-9001}
-      - CL_RPC_PORT=${CL_RPC_PORT:-26657}
-      - CL_P2P_PORT=${CL_P2P_PORT:-26656}
-      - CL_METRICS_PORT=${CL_METRICS_PORT:-26660}
-      - P2P_EXTERNAL_IP=${P2P_EXTERNAL_IP:-}
-      - GETH_EXTRA_FLAGS=${GETH_EXTRA_FLAGS:-}
-      - CL_EXTRA_FLAGS=${CL_EXTRA_FLAGS:-}
+    environment: *node-environment
+    command:
+      - init
+
+  geth:
+    <<: [*node-image, *logging]
+    container_name: ${PROJECT_NAME}-geth
+    restart: unless-stopped
+    stop_grace_period: 10m
+    depends_on:
+      init:
+        condition: service_completed_successfully
+    volumes:
+      - 0g-data:/data
+    environment: *node-environment
+    command:
+      - run-geth
     ports:
       - ${GETH_P2P_PORT:-30303}:${GETH_P2P_PORT:-30303}/tcp
       - ${GETH_P2P_PORT:-30303}:${GETH_P2P_PORT:-30303}/udp
-      - ${CL_P2P_PORT:-26656}:${CL_P2P_PORT:-26656}/tcp
-    <<: *logging
     healthcheck:
       test:
         - CMD-SHELL
@@ -82,6 +101,40 @@ services:
       - metrics.port=${GETH_METRICS_PORT:-9001}
       - metrics.path=/debug/metrics/prometheus
       - metrics.instance=geth
+      - metrics.network=${NETWORK:-aristotle}
+
+  0gchaind:
+    <<: [*node-image, *logging]
+    container_name: ${PROJECT_NAME}-0gchaind
+    restart: unless-stopped
+    stop_grace_period: 5m
+    depends_on:
+      init:
+        condition: service_completed_successfully
+      geth:
+        condition: service_healthy
+    volumes:
+      - 0g-data:/data
+    environment: *node-environment
+    command:
+      - run-0gchaind
+    ports:
+      - ${CL_P2P_PORT:-26656}:${CL_P2P_PORT:-26656}/tcp
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - >-
+          curl -sf http://localhost:${CL_RPC_PORT:-26657}/status
+          | jq -e '.result.sync_info // .sync_info' >/dev/null
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 120s
+    labels:
+      - metrics.scrape=true
+      - metrics.port=${CL_METRICS_PORT:-26660}
+      - metrics.path=/metrics
+      - metrics.instance=0gchaind
       - metrics.network=${NETWORK:-aristotle}
 
 volumes:

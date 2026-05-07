@@ -1,5 +1,10 @@
 services:
-  node:
+  geth:
+    networks:
+      - default
+      - ext-network
+
+  0gchaind:
     networks:
       - default
       - ext-network
