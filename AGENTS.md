@@ -4,11 +4,13 @@ See README.md for project overview, setup, ports, and runtime commands.
 
 ## Project Structure
 
-- `0g.yml` is the primary compose file; keep service name `node`.
+- `0g.yml` is the primary compose file; keep service names `init`, `geth`, and `0gchaind`.
+- `rpc-shared.yml` exposes loopback RPC/debug ports; `ext-network.yml` attaches runtime services to Traefik.
 - `node/Dockerfile.binary` builds from the pinned Aristotle release archive.
-- `node/entrypoint.sh` initializes 0gchaind, geth, JWT, genesis, optional snapshot restore, and process startup.
+- `node/entrypoint.sh` owns `init`, `run-geth`, and `run-0gchaind` modes.
 - `scripts/check_sync.sh` compares local geth JSON-RPC to `PUBLIC_RPC`.
 - `ethd` is the canonical wrapper; `0gd` is a symlink to `ethd`.
+- `CLAUDE.md` is a symlink to this file; update `AGENTS.md` only.
 
 ## Validation
 
@@ -16,6 +18,7 @@ See README.md for project overview, setup, ports, and runtime commands.
 - Run `pre-commit run --all-files` before committing.
 - Run `docker compose --env-file default.env -f 0g.yml config` after compose/env edits.
 - Run `docker compose --env-file default.env -f 0g.yml -f rpc-shared.yml config` after port edits.
+- Run `docker compose --env-file default.env -f 0g.yml -f ext-network.yml config` after Traefik/network edits.
 - Run `cp default.env .env && ./ethd update --debug --non-interactive` after env or migration changes when Docker is available.
 - Use a Linux Docker host for image smoke tests; upstream binaries are linux/amd64.
 
@@ -33,6 +36,7 @@ See README.md for project overview, setup, ports, and runtime commands.
 - Increment `ENV_VERSION` in `default.env` when adding or renaming env vars.
 - Every env var consumed by `node/entrypoint.sh` must be present in `0g.yml` environment.
 - Keep `ZEROG_RELEASE_SHA256` pinned and update it whenever `ZEROG_VERSION` changes.
-- Keep `AUTH_RPC_PORT` wired to both geth `AuthPort` and 0gchaind `--chaincfg.engine.rpc-dial-url`.
+- Keep `AUTH_RPC_PORT` wired to geth `AuthPort` and 0gchaind `--chaincfg.engine.rpc-dial-url`.
+- Keep `GETH_ENGINE_HOST=geth` unless compose service names change.
 - Port variables set both container listen ports and host-published ports.
 - Do not add a source-build Dockerfile unless a compose path uses and validates it.

@@ -23,7 +23,7 @@ Exit Codes:
 Examples:
   ./scripts/check_sync.sh
   ./scripts/check_sync.sh --local-rpc http://127.0.0.1:8545
-  ./scripts/check_sync.sh --compose-service node --public-rpc https://evmrpc.0g.ai
+  ./scripts/check_sync.sh --compose-service geth --public-rpc https://evmrpc.0g.ai
 USAGE
 }
 
@@ -239,7 +239,7 @@ PUBLIC_RPC="${PUBLIC_RPC:-https://evmrpc.0g.ai}"
 BLOCK_LAG_THRESHOLD="${BLOCK_LAG_THRESHOLD:-${BLOCK_LAG:-5}}"
 
 if [[ "${LOCAL_RPC_WAS_SET}" -eq 0 && "${SERVICE_WAS_SET}" -eq 0 && "${CONTAINER_WAS_SET}" -eq 0 ]]; then
-  DOCKER_SERVICE="${DOCKER_SERVICE:-node}"
+  DOCKER_SERVICE="${DOCKER_SERVICE:-geth}"
 fi
 
 resolve_container

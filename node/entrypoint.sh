@@ -10,6 +10,7 @@ LOG_LEVEL="${LOG_LEVEL:-info}"
 RPC_PORT="${RPC_PORT:-8545}"
 WS_PORT="${WS_PORT:-8546}"
 AUTH_RPC_PORT="${AUTH_RPC_PORT:-8551}"
+GETH_ENGINE_HOST="${GETH_ENGINE_HOST:-geth}"
 GETH_P2P_PORT="${GETH_P2P_PORT:-30303}"
 GETH_METRICS_PORT="${GETH_METRICS_PORT:-9001}"
 CL_RPC_PORT="${CL_RPC_PORT:-26657}"
@@ -22,19 +23,18 @@ GETH_HOME="${OG_HOME}/geth-home"
 CL_HOME="${OG_HOME}/0gchaind-home"
 GETH_CONFIG="${OG_HOME}/geth-archive-config.toml"
 JWT_FILE="${OG_HOME}/jwt.hex"
+INITIALIZED_FILE="${DATA_DIR}/.initialized"
 
-if [[ "$#" -gt 0 ]]; then
-  exec "$@"
-fi
-
-case "${NETWORK}" in
-  aristotle|mainnet)
-    ;;
-  *)
-    echo "Unsupported network: ${NETWORK}. Supported networks: aristotle, mainnet"
-    exit 1
-    ;;
-esac
+validate_network() {
+  case "${NETWORK}" in
+    aristotle|mainnet)
+      ;;
+    *)
+      echo "Unsupported network: ${NETWORK}. Supported networks: aristotle, mainnet"
+      exit 1
+      ;;
+  esac
+}
 
 restore_snapshot() {
   [[ -n "${SNAPSHOT}" ]] || return 0
@@ -140,79 +140,115 @@ initialize_geth() {
   fi
 }
 
-initialize_once() {
-  [[ ! -f "${DATA_DIR}/.initialized" ]] || return 0
+run_init() {
+  validate_network
 
-  restore_snapshot
+  if [[ ! -f "${INITIALIZED_FILE}" ]]; then
+    restore_snapshot
+    prepare_layout
+    configure_geth
+    configure_0gchaind
+    initialize_keys 1
+    initialize_geth
+    touch "${INITIALIZED_FILE}"
+    echo "0G data initialized in ${DATA_DIR}"
+    return 0
+  fi
+
   prepare_layout
   configure_geth
   configure_0gchaind
-  initialize_keys 1
+  initialize_keys 0
   initialize_geth
-  touch "${DATA_DIR}/.initialized"
+  echo "0G data already initialized in ${DATA_DIR}"
 }
 
-initialize_once
-prepare_layout
-configure_geth
-configure_0gchaind
+wait_for_initialized() {
+  local waited=0
+  local timeout="${INIT_WAIT_TIMEOUT:-600}"
 
-echo "Starting 0G Aristotle node"
-echo "  moniker: ${MONIKER}"
-echo "  chain id: ${CHAIN_ID}"
-echo "  data dir: ${DATA_DIR}"
+  until [[ -f "${INITIALIZED_FILE}" ]]; do
+    if (( waited >= timeout )); then
+      echo "Timed out waiting for ${INITIALIZED_FILE}"
+      exit 1
+    fi
+    echo "Waiting for 0G initialization to complete"
+    sleep 5
+    waited=$((waited + 5))
+  done
+}
 
-pids=()
+run_geth() {
+  validate_network
+  wait_for_initialized
+  prepare_layout
+  configure_geth
+  initialize_geth
 
-stop_children() {
-  if [[ "${#pids[@]}" -gt 0 ]]; then
-    kill "${pids[@]}" 2>/dev/null || true
-    wait "${pids[@]}" 2>/dev/null || true
+  echo "Starting 0G geth"
+  echo "  chain id: ${CHAIN_ID}"
+  echo "  data dir: ${GETH_HOME}"
+
+  geth_args=(
+    geth
+    --config "${GETH_CONFIG}"
+    --datadir "${GETH_HOME}"
+    --networkid "${CHAIN_ID}"
+    --metrics
+    --metrics.addr 0.0.0.0
+    --metrics.port "${GETH_METRICS_PORT}"
+  )
+
+  if [[ -n "${P2P_EXTERNAL_IP}" ]]; then
+    geth_args+=(--nat "extip:${P2P_EXTERNAL_IP}")
   fi
+
+  # shellcheck disable=SC2086
+  exec "${geth_args[@]}" ${GETH_EXTRA_FLAGS:-}
 }
 
-trap stop_children INT TERM
+run_0gchaind() {
+  validate_network
+  wait_for_initialized
+  prepare_layout
+  configure_0gchaind
 
-cl_args=(
-  0gchaind start
-  --rpc.laddr "tcp://0.0.0.0:${CL_RPC_PORT}"
-  --p2p.laddr "tcp://0.0.0.0:${CL_P2P_PORT}"
-  --chaincfg.kzg.trusted-setup-path /opt/0g/kzg-trusted-setup.json
-  --chaincfg.engine.jwt-secret-path "${JWT_FILE}"
-  --chaincfg.engine.rpc-dial-url "http://localhost:${AUTH_RPC_PORT}"
-  --chaincfg.block-store-service.enabled
-  --home "${CL_HOME}"
-)
+  echo "Starting 0G 0gchaind"
+  echo "  moniker: ${MONIKER}"
+  echo "  chain id: ${CHAIN_ID}"
+  echo "  data dir: ${CL_HOME}"
+  echo "  engine RPC: http://${GETH_ENGINE_HOST}:${AUTH_RPC_PORT}"
 
-if [[ -n "${P2P_EXTERNAL_IP}" ]]; then
-  cl_args+=(--p2p.external_address "${P2P_EXTERNAL_IP}:${CL_P2P_PORT}")
-fi
+  cl_args=(
+    0gchaind start
+    --rpc.laddr "tcp://0.0.0.0:${CL_RPC_PORT}"
+    --p2p.laddr "tcp://0.0.0.0:${CL_P2P_PORT}"
+    --chaincfg.kzg.trusted-setup-path /opt/0g/kzg-trusted-setup.json
+    --chaincfg.engine.jwt-secret-path "${JWT_FILE}"
+    --chaincfg.engine.rpc-dial-url "http://${GETH_ENGINE_HOST}:${AUTH_RPC_PORT}"
+    --chaincfg.block-store-service.enabled
+    --home "${CL_HOME}"
+  )
 
-# shellcheck disable=SC2086
-"${cl_args[@]}" ${CL_EXTRA_FLAGS:-} &
-pids+=("$!")
+  if [[ -n "${P2P_EXTERNAL_IP}" ]]; then
+    cl_args+=(--p2p.external_address "${P2P_EXTERNAL_IP}:${CL_P2P_PORT}")
+  fi
 
-sleep 5
+  # shellcheck disable=SC2086
+  exec "${cl_args[@]}" ${CL_EXTRA_FLAGS:-}
+}
 
-geth_args=(
-  geth
-  --config "${GETH_CONFIG}"
-  --datadir "${GETH_HOME}"
-  --networkid "${CHAIN_ID}"
-  --metrics
-  --metrics.addr 0.0.0.0
-  --metrics.port "${GETH_METRICS_PORT}"
-)
-
-if [[ -n "${P2P_EXTERNAL_IP}" ]]; then
-  geth_args+=(--nat "extip:${P2P_EXTERNAL_IP}")
-fi
-
-# shellcheck disable=SC2086
-"${geth_args[@]}" ${GETH_EXTRA_FLAGS:-} &
-pids+=("$!")
-
-wait -n "${pids[@]}"
-status="$?"
-stop_children
-exit "${status}"
+case "${1:-run-geth}" in
+  init)
+    run_init
+    ;;
+  run-geth)
+    run_geth
+    ;;
+  run-0gchaind)
+    run_0gchaind
+    ;;
+  *)
+    exec "$@"
+    ;;
+esac

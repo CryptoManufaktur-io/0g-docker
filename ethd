@@ -12,7 +12,7 @@ set -Eeuo pipefail
 
 __project_name="0G Docker"
 __app_name="0G node"
-__sample_service="node"
+__sample_service="geth"
 __docker_exe="docker"
 __old_docker=0
 __compose_exe="docker compose"
@@ -36,9 +36,9 @@ version() {
 # Script version from README
   grep "^This is" README.md
   echo
-  __docompose run --rm --no-deps node geth version
+  __docompose run --rm --no-deps geth geth version
   echo
-  __docompose run --rm --no-deps node 0gchaind version
+  __docompose run --rm --no-deps 0gchaind 0gchaind version
 }
 
 
