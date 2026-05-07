@@ -6,7 +6,7 @@ See README.md for project overview, setup, ports, and runtime commands.
 
 - `0g.yml` is the primary compose file; keep service names `init`, `geth`, and `0gchaind`.
 - `rpc-shared.yml` exposes loopback RPC/debug ports; `ext-network.yml` attaches runtime services to Traefik.
-- `node/Dockerfile.binary` builds from the pinned Aristotle release archive.
+- `node/Dockerfile.binary` builds from the versioned Aristotle release archive.
 - `node/entrypoint.sh` owns `init`, `run-geth`, and `run-0gchaind` modes.
 - `scripts/check_sync.sh` compares local geth JSON-RPC to `PUBLIC_RPC`.
 - `ethd` is the canonical wrapper; `0gd` is a symlink to `ethd`.
@@ -36,7 +36,6 @@ See README.md for project overview, setup, ports, and runtime commands.
 - Do not edit core infrastructure functions in `ethd`; change only protocol-specific sections.
 - Increment `ENV_VERSION` in `default.env` when adding or renaming env vars.
 - Every env var consumed by `node/entrypoint.sh` must be present in `0g.yml` environment.
-- Keep `ZEROG_RELEASE_SHA256` pinned and update it whenever `ZEROG_VERSION` changes.
 - Keep `AUTH_RPC_PORT` wired to geth `AuthPort` and 0gchaind `--chaincfg.engine.rpc-dial-url`.
 - Keep `GETH_ENGINE_HOST=geth` unless compose service names change.
 - `P2P_EXTERNAL_IP` must be empty, `auto`, `none`, or an IPv4 address; never set it to a Docker service name.
