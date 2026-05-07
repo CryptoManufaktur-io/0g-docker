@@ -1,3 +1,3 @@
 # Contributing
 
-This repository is a skeleton template. Keep changes minimal, generic, and well documented.
+Keep changes minimal, production-focused, and covered by the validation commands in README.md.

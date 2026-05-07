@@ -14,7 +14,7 @@ This is 0g-docker v1.0.0
 | Public RPC | `https://evmrpc.0g.ai` |
 | Explorer | `https://chainscan.0g.ai` |
 
-The container runs both upstream 0G clients from the pinned Aristotle release:
+The container runs both upstream 0G clients from the pinned Aristotle release archive:
 
 - `0gchaind` consensus client
 - `geth` execution client with archive config
@@ -125,3 +125,5 @@ pre-commit run --all-files
 cp default.env .env
 ./ethd update --debug --non-interactive
 ```
+
+Use a Linux Docker host for image smoke tests because the upstream binaries are linux/amd64.
