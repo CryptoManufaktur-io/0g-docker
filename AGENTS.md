@@ -38,6 +38,6 @@ See README.md for project overview, setup, ports, and runtime commands.
 - Keep `ZEROG_RELEASE_SHA256` pinned and update it whenever `ZEROG_VERSION` changes.
 - Keep `AUTH_RPC_PORT` wired to geth `AuthPort` and 0gchaind `--chaincfg.engine.rpc-dial-url`.
 - Keep `GETH_ENGINE_HOST=geth` unless compose service names change.
-- `P2P_EXTERNAL_IP` must be empty, `auto`, or a public IPv4 address; never set it to a Docker service name.
+- `P2P_EXTERNAL_IP` must be empty, `auto`, `none`, or a public IPv4 address; never set it to a Docker service name.
 - Port variables set both container listen ports and host-published ports.
 - Do not add a source-build Dockerfile unless a compose path uses and validates it.

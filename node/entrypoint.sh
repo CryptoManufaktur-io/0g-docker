@@ -64,13 +64,15 @@ resolve_p2p_external_ip() {
 
   RESOLVED_P2P_EXTERNAL_IP=""
 
-  if [[ -z "${P2P_EXTERNAL_IP}" ]]; then
-    return 0
-  fi
+  case "${P2P_EXTERNAL_IP}" in
+    none|disabled|false)
+      return 0
+      ;;
+  esac
 
-  if [[ "${P2P_EXTERNAL_IP}" != "auto" ]]; then
+  if [[ -n "${P2P_EXTERNAL_IP}" && "${P2P_EXTERNAL_IP}" != "auto" ]]; then
     if ! is_ipv4 "${P2P_EXTERNAL_IP}"; then
-      echo "P2P_EXTERNAL_IP must be an IPv4 address, empty, or auto: ${P2P_EXTERNAL_IP}"
+      echo "P2P_EXTERNAL_IP must be an IPv4 address, empty, auto, or none: ${P2P_EXTERNAL_IP}"
       exit 1
     fi
     RESOLVED_P2P_EXTERNAL_IP="${P2P_EXTERNAL_IP}"
@@ -80,12 +82,12 @@ resolve_p2p_external_ip() {
   for endpoint in "${endpoints[@]}"; do
     if ip="$(curl -4fsS --max-time 5 "${endpoint}" 2>/dev/null | tr -d '[:space:]')" && is_ipv4 "${ip}"; then
       RESOLVED_P2P_EXTERNAL_IP="${ip}"
-      echo "Resolved P2P_EXTERNAL_IP=auto to ${RESOLVED_P2P_EXTERNAL_IP} via ${endpoint}"
+      echo "Resolved P2P_EXTERNAL_IP to ${RESOLVED_P2P_EXTERNAL_IP} via ${endpoint}"
       return 0
     fi
   done
 
-  echo "Unable to resolve P2P_EXTERNAL_IP=auto to a public IPv4 address"
+  echo "Unable to resolve P2P_EXTERNAL_IP to a public IPv4 address"
   exit 1
 }
 
