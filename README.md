@@ -44,6 +44,8 @@ Recommended production host capacity:
 - At least 1 TiB free disk; several TiB is preferred for archive growth
 
 The upstream archive snapshot is large. Use a host with enough free space before setting `SNAPSHOT`.
+Snapshot restore downloads the compressed archive before extraction, so budget temporary disk
+for the compressed archive plus the extracted data.
 
 ## Quick Start
 
@@ -133,9 +135,10 @@ Exit codes:
 
 ## Snapshot Restore
 
-Set `SNAPSHOT` to a supported `.tar.lz4`, `.tar.gz`, `.tar.zst`, or `.tar` archive before first start. The `init` service extracts it into `/data`, then initializes any missing config, keys, JWT, and geth genesis state.
+Set `SNAPSHOT` to a supported `.tar.lz4`, `.tar.gz`, `.tar.zst`, or `.tar` archive before first start. The `init` service downloads it with `aria2c -x 16`, extracts it into `/data`, then initializes any missing config, keys, JWT, and geth genesis state.
 
 Snapshot extraction is guarded by `/data/.snapshot-restored`; full initialization is guarded by `/data/.initialized`.
+Partial downloads are kept under `/data/.snapshot-download` so a failed restore can resume on the next `init` run. The temporary download is removed after successful extraction.
 
 ## Validation
 
