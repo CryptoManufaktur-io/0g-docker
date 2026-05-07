@@ -24,6 +24,7 @@ CL_HOME="${OG_HOME}/0gchaind-home"
 GETH_CONFIG="${OG_HOME}/geth-archive-config.toml"
 JWT_FILE="${OG_HOME}/jwt.hex"
 INITIALIZED_FILE="${DATA_DIR}/.initialized"
+RESOLVED_P2P_EXTERNAL_IP=""
 
 validate_network() {
   case "${NETWORK}" in
@@ -34,6 +35,58 @@ validate_network() {
       exit 1
       ;;
   esac
+}
+
+is_ipv4() {
+  local ip="$1"
+  local octet
+  local o1
+  local o2
+  local o3
+  local o4
+
+  [[ "${ip}" =~ ^([0-9]{1,3}\.){3}[0-9]{1,3}$ ]] || return 1
+  IFS=. read -r o1 o2 o3 o4 <<< "${ip}"
+
+  for octet in "${o1}" "${o2}" "${o3}" "${o4}"; do
+    (( 10#${octet} <= 255 )) || return 1
+  done
+}
+
+resolve_p2p_external_ip() {
+  local endpoint
+  local ip
+  local endpoints=(
+    "https://ifconfig.me/ip"
+    "https://icanhazip.com"
+    "https://api.ipify.org"
+  )
+
+  RESOLVED_P2P_EXTERNAL_IP=""
+
+  if [[ -z "${P2P_EXTERNAL_IP}" ]]; then
+    return 0
+  fi
+
+  if [[ "${P2P_EXTERNAL_IP}" != "auto" ]]; then
+    if ! is_ipv4 "${P2P_EXTERNAL_IP}"; then
+      echo "P2P_EXTERNAL_IP must be an IPv4 address, empty, or auto: ${P2P_EXTERNAL_IP}"
+      exit 1
+    fi
+    RESOLVED_P2P_EXTERNAL_IP="${P2P_EXTERNAL_IP}"
+    return 0
+  fi
+
+  for endpoint in "${endpoints[@]}"; do
+    if ip="$(curl -4fsS --max-time 5 "${endpoint}" 2>/dev/null | tr -d '[:space:]')" && is_ipv4 "${ip}"; then
+      RESOLVED_P2P_EXTERNAL_IP="${ip}"
+      echo "Resolved P2P_EXTERNAL_IP=auto to ${RESOLVED_P2P_EXTERNAL_IP} via ${endpoint}"
+      return 0
+    fi
+  done
+
+  echo "Unable to resolve P2P_EXTERNAL_IP=auto to a public IPv4 address"
+  exit 1
 }
 
 restore_snapshot() {
@@ -184,10 +237,14 @@ run_geth() {
   prepare_layout
   configure_geth
   initialize_geth
+  resolve_p2p_external_ip
 
   echo "Starting 0G geth"
   echo "  chain id: ${CHAIN_ID}"
   echo "  data dir: ${GETH_HOME}"
+  if [[ -n "${RESOLVED_P2P_EXTERNAL_IP}" ]]; then
+    echo "  p2p external ip: ${RESOLVED_P2P_EXTERNAL_IP}"
+  fi
 
   geth_args=(
     geth
@@ -199,8 +256,8 @@ run_geth() {
     --metrics.port "${GETH_METRICS_PORT}"
   )
 
-  if [[ -n "${P2P_EXTERNAL_IP}" ]]; then
-    geth_args+=(--nat "extip:${P2P_EXTERNAL_IP}")
+  if [[ -n "${RESOLVED_P2P_EXTERNAL_IP}" ]]; then
+    geth_args+=(--nat "extip:${RESOLVED_P2P_EXTERNAL_IP}")
   fi
 
   # shellcheck disable=SC2086
@@ -212,12 +269,16 @@ run_0gchaind() {
   wait_for_initialized
   prepare_layout
   configure_0gchaind
+  resolve_p2p_external_ip
 
   echo "Starting 0G 0gchaind"
   echo "  moniker: ${MONIKER}"
   echo "  chain id: ${CHAIN_ID}"
   echo "  data dir: ${CL_HOME}"
   echo "  engine RPC: http://${GETH_ENGINE_HOST}:${AUTH_RPC_PORT}"
+  if [[ -n "${RESOLVED_P2P_EXTERNAL_IP}" ]]; then
+    echo "  p2p external address: ${RESOLVED_P2P_EXTERNAL_IP}:${CL_P2P_PORT}"
+  fi
 
   cl_args=(
     0gchaind start
@@ -230,8 +291,8 @@ run_0gchaind() {
     --home "${CL_HOME}"
   )
 
-  if [[ -n "${P2P_EXTERNAL_IP}" ]]; then
-    cl_args+=(--p2p.external_address "${P2P_EXTERNAL_IP}:${CL_P2P_PORT}")
+  if [[ -n "${RESOLVED_P2P_EXTERNAL_IP}" ]]; then
+    cl_args+=(--p2p.external_address "${RESOLVED_P2P_EXTERNAL_IP}:${CL_P2P_PORT}")
   fi
 
   # shellcheck disable=SC2086
