@@ -77,11 +77,14 @@ Key variables in `.env`:
 | `MONIKER` | 0gchaind node moniker | `0g-node` |
 | `GETH_ENGINE_HOST` | Hostname 0gchaind uses for geth engine RPC | `geth` |
 | `P2P_EXTERNAL_IP` | Public IPv4 advertised for geth and 0gchaind P2P; empty or `auto` resolves IPv4 at startup, `none` disables advertisement | empty |
+| `INIT_WAIT_TIMEOUT` | Seconds geth and 0gchaind wait for the init marker before exiting | `600` |
 | `RPC_HOST` | Traefik HTTP RPC hostname prefix | `0g` |
 | `WS_HOST` | Traefik WebSocket hostname prefix | `0gws` |
 | `PUBLIC_RPC` | Reference endpoint used by `check-sync` | `https://evmrpc.0g.ai` |
 
 Production inventory can leave `P2P_EXTERNAL_IP` empty when the host can reach the public IP lookup endpoints during startup. Set it to a public IPv4 to pin the advertised address, or `none` to skip explicit advertisement. Do not use Docker service names such as `geth`; external P2P peers must receive a routable host address.
+
+Blank or `auto` P2P address resolution requires outbound HTTPS from the container to the public IPv4 lookup endpoints. Startup fails if all lookup endpoints are unreachable; set a fixed public IPv4 or `none` for hosts without that egress.
 
 ## Ports
 
@@ -145,6 +148,7 @@ pre-commit run --all-files
 docker compose --env-file default.env -f 0g.yml config
 docker compose --env-file default.env -f 0g.yml -f rpc-shared.yml config
 docker compose --env-file default.env -f 0g.yml -f ext-network.yml config
+docker compose --env-file default.env -f 0g.yml run --rm --no-deps geth sh -lc 'curl -4fsS --max-time 5 https://ifconfig.me/ip'
 ```
 
 Use a Linux Docker host for image smoke tests because the upstream binaries are linux/amd64.

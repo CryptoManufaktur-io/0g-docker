@@ -53,6 +53,46 @@ is_ipv4() {
   done
 }
 
+is_public_ipv4() {
+  local ip="$1"
+  local o1
+  local o2
+  local o3
+  local o4
+
+  is_ipv4 "${ip}" || return 1
+  IFS=. read -r o1 o2 o3 o4 <<< "${ip}"
+
+  case "${o1}" in
+    0|10|127|224|225|226|227|228|229|230|231|232|233|234|235|236|237|238|239|240|241|242|243|244|245|246|247|248|249|250|251|252|253|254|255)
+      return 1
+      ;;
+  esac
+
+  if (( 10#${o1} == 169 && 10#${o2} == 254 )); then
+    return 1
+  fi
+  if (( 10#${o1} == 100 && 10#${o2} >= 64 && 10#${o2} <= 127 )); then
+    return 1
+  fi
+  if (( 10#${o1} == 172 && 10#${o2} >= 16 && 10#${o2} <= 31 )); then
+    return 1
+  fi
+  if (( 10#${o1} == 192 && 10#${o2} == 168 )); then
+    return 1
+  fi
+  if (( 10#${o1} == 198 && (10#${o2} == 18 || 10#${o2} == 19) )); then
+    return 1
+  fi
+
+  # Keep documentation and runtime behavior aligned: manual values must be routable.
+  if (( 10#${o1} == 192 && 10#${o2} == 0 && 10#${o3} == 0 )); then
+    return 1
+  fi
+
+  return 0
+}
+
 resolve_p2p_external_ip() {
   local endpoint
   local ip
@@ -65,14 +105,14 @@ resolve_p2p_external_ip() {
   RESOLVED_P2P_EXTERNAL_IP=""
 
   case "${P2P_EXTERNAL_IP}" in
-    none|disabled|false)
+    none)
       return 0
       ;;
   esac
 
   if [[ -n "${P2P_EXTERNAL_IP}" && "${P2P_EXTERNAL_IP}" != "auto" ]]; then
-    if ! is_ipv4 "${P2P_EXTERNAL_IP}"; then
-      echo "P2P_EXTERNAL_IP must be an IPv4 address, empty, auto, or none: ${P2P_EXTERNAL_IP}"
+    if ! is_public_ipv4 "${P2P_EXTERNAL_IP}"; then
+      echo "P2P_EXTERNAL_IP must be a public IPv4 address, empty, auto, or none: ${P2P_EXTERNAL_IP}"
       exit 1
     fi
     RESOLVED_P2P_EXTERNAL_IP="${P2P_EXTERNAL_IP}"
@@ -80,7 +120,7 @@ resolve_p2p_external_ip() {
   fi
 
   for endpoint in "${endpoints[@]}"; do
-    if ip="$(curl -4fsS --max-time 5 "${endpoint}" 2>/dev/null | tr -d '[:space:]')" && is_ipv4 "${ip}"; then
+    if ip="$(curl -4fsS --max-time 5 "${endpoint}" 2>/dev/null | tr -d '[:space:]')" && is_public_ipv4 "${ip}"; then
       RESOLVED_P2P_EXTERNAL_IP="${ip}"
       echo "Resolved P2P_EXTERNAL_IP to ${RESOLVED_P2P_EXTERNAL_IP} via ${endpoint}"
       return 0
