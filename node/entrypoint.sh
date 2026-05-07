@@ -40,15 +40,12 @@ validate_network() {
 is_ipv4() {
   local ip="$1"
   local octet
-  local o1
-  local o2
-  local o3
-  local o4
+  local octets
 
   [[ "${ip}" =~ ^([0-9]{1,3}\.){3}[0-9]{1,3}$ ]] || return 1
-  IFS=. read -r o1 o2 o3 o4 <<< "${ip}"
+  IFS=. read -r -a octets <<< "${ip}"
 
-  for octet in "${o1}" "${o2}" "${o3}" "${o4}"; do
+  for octet in "${octets[@]}"; do
     (( 10#${octet} <= 255 )) || return 1
   done
 }
@@ -87,7 +84,7 @@ resolve_p2p_external_ip() {
     fi
   done
 
-  echo "Unable to resolve P2P_EXTERNAL_IP to a public IPv4 address"
+  echo "Unable to resolve P2P_EXTERNAL_IP to an IPv4 address"
   exit 1
 }
 

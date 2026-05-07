@@ -82,9 +82,7 @@ Key variables in `.env`:
 | `WS_HOST` | Traefik WebSocket hostname prefix | `0gws` |
 | `PUBLIC_RPC` | Reference endpoint used by `check-sync` | `https://evmrpc.0g.ai` |
 
-Production inventory can leave `P2P_EXTERNAL_IP` empty when the host can reach the public IP lookup endpoints during startup. Set it to a fixed IPv4 to pin the advertised address, or `none` to skip explicit advertisement. Do not use Docker service names such as `geth`; external P2P peers must receive a routable host address.
-
-Blank or `auto` P2P address resolution requires outbound HTTPS from the container to the public IPv4 lookup endpoints. Startup fails if all lookup endpoints are unreachable; set a fixed public IPv4 or `none` for hosts without that egress.
+Production inventory can leave `P2P_EXTERNAL_IP` empty when the container has outbound HTTPS to the public IPv4 lookup endpoints. Startup fails if all lookup endpoints are unreachable. Set it to a fixed IPv4 to pin the advertised address, or `none` to skip explicit advertisement. Do not use Docker service names such as `geth`; external P2P peers must receive a routable host address.
 
 ## Ports
 
