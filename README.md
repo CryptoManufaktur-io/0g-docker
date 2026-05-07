@@ -76,12 +76,12 @@ Key variables in `.env`:
 | `SNAPSHOT` | Optional initial archive snapshot URL | empty |
 | `MONIKER` | 0gchaind node moniker | `0g-node` |
 | `GETH_ENGINE_HOST` | Hostname 0gchaind uses for geth engine RPC | `geth` |
-| `P2P_EXTERNAL_IP` | Public IPv4 advertised for geth and 0gchaind P2P | empty |
+| `P2P_EXTERNAL_IP` | Public IPv4 advertised for geth and 0gchaind P2P; use `auto` for IPv4-only startup resolution | empty |
 | `RPC_HOST` | Traefik HTTP RPC hostname prefix | `0g` |
 | `WS_HOST` | Traefik WebSocket hostname prefix | `0gws` |
 | `PUBLIC_RPC` | Reference endpoint used by `check-sync` | `https://evmrpc.0g.ai` |
 
-Production inventory should set `P2P_EXTERNAL_IP` to the host public IP.
+Production inventory should set `P2P_EXTERNAL_IP` to the host public IPv4, or to `auto` when the host can reach the public IP lookup endpoints during startup. Do not use Docker service names such as `geth`; external P2P peers must receive a routable host address.
 
 ## Ports
 
