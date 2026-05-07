@@ -6,6 +6,7 @@ See README.md for project overview, setup, ports, and runtime commands.
 
 - `0g.yml` is the primary compose file; keep service names `init`, `geth`, and `0gchaind`.
 - `rpc-shared.yml` exposes loopback RPC/debug ports; `ext-network.yml` attaches runtime services to Traefik.
+- `cf-ddns.yml` runs an IPv4-only Cloudflare DDNS updater for `RPC_HOST` and `WS_HOST`.
 - `node/Dockerfile.binary` builds from the versioned Aristotle release archive.
 - `node/entrypoint.sh` owns `init`, `run-geth`, and `run-0gchaind` modes.
 - `scripts/check_sync.sh` compares local geth JSON-RPC to `PUBLIC_RPC`.
@@ -19,6 +20,7 @@ See README.md for project overview, setup, ports, and runtime commands.
 - Run `docker compose --env-file default.env -f 0g.yml config` after compose/env edits.
 - Run `docker compose --env-file default.env -f 0g.yml -f rpc-shared.yml config` after port edits.
 - Run `docker compose --env-file default.env -f 0g.yml -f ext-network.yml config` after Traefik/network edits.
+- Run `docker compose --env-file default.env -f 0g.yml -f ext-network.yml -f cf-ddns.yml config` after DDNS edits.
 - Run `docker compose --env-file default.env -f 0g.yml run --rm --no-deps geth sh -lc 'curl -4fsS --max-time 5 https://ifconfig.me/ip'` after P2P auto-IP changes on a Linux Docker host.
 - Run `cp default.env .env && ./ethd update --debug --non-interactive` after env or migration changes when Docker is available.
 - Use a Linux Docker host for image smoke tests; upstream binaries are linux/amd64.
@@ -40,4 +42,5 @@ See README.md for project overview, setup, ports, and runtime commands.
 - Keep `GETH_ENGINE_HOST=geth` unless compose service names change.
 - `P2P_EXTERNAL_IP` must be empty, `auto`, `none`, or an IPv4 address; never set it to a Docker service name.
 - Port variables set both container listen ports and host-published ports.
+- `cf-ddns.yml` must stay IPv4-only unless the target hosts have working public IPv6.
 - Do not add a source-build Dockerfile unless a compose path uses and validates it.
