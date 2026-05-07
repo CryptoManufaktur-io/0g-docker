@@ -164,9 +164,11 @@ prepare_layout() {
 
   if [[ ! -d "${OG_HOME}" ]]; then
     cp -a /opt/0g/0g-home "${OG_HOME}"
+  else
+    cp -an /opt/0g/0g-home/. "${OG_HOME}/"
   fi
 
-  mkdir -p "${GETH_HOME}" "${CL_HOME}" "${OG_HOME}/log"
+  mkdir -p "${GETH_HOME}" "${CL_HOME}/config" "${CL_HOME}/data" "${OG_HOME}/log"
 
   if [[ ! -f "${GETH_CONFIG}" ]]; then
     cp /opt/0g/geth-archive-config.toml "${GETH_CONFIG}"
