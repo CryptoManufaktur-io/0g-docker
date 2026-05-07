@@ -23,6 +23,7 @@ ARG USER=node
 ARG UID=10001
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
+    aria2 \
     bash \
     ca-certificates \
     curl \

@@ -25,6 +25,7 @@ GETH_CONFIG="${OG_HOME}/geth-archive-config.toml"
 JWT_FILE="${OG_HOME}/jwt.hex"
 INITIALIZED_FILE="${DATA_DIR}/.initialized"
 RESOLVED_P2P_EXTERNAL_IP=""
+SNAPSHOT_ARCHIVE=""
 
 validate_network() {
   case "${NETWORK}" in
@@ -89,28 +90,58 @@ resolve_p2p_external_ip() {
 }
 
 restore_snapshot() {
+  local download_dir="${DATA_DIR}/.snapshot-download"
+  local archive_name
+  local snapshot_path
+
   [[ -n "${SNAPSHOT}" ]] || return 0
   [[ ! -f "${DATA_DIR}/.snapshot-restored" ]] || return 0
 
+  snapshot_path="${SNAPSHOT%%[?#]*}"
+  archive_name="${snapshot_path##*/}"
+  if [[ -z "${archive_name}" || "${archive_name}" == "${snapshot_path}" ]]; then
+    archive_name="snapshot-archive"
+  fi
+
+  mkdir -p "${download_dir}"
+  SNAPSHOT_ARCHIVE="${download_dir}/${archive_name}"
+
   echo "Restoring snapshot from ${SNAPSHOT}"
-  case "${SNAPSHOT}" in
+  echo "Downloading snapshot with aria2c -x 16 to ${SNAPSHOT_ARCHIVE}"
+  aria2c \
+    --continue=true \
+    --max-connection-per-server=16 \
+    --split=16 \
+    --min-split-size=64M \
+    --connect-timeout=30 \
+    --timeout=60 \
+    --max-tries=5 \
+    --retry-wait=5 \
+    --dir="${download_dir}" \
+    --out="${archive_name}" \
+    --auto-file-renaming=false \
+    --allow-overwrite=true \
+    "${SNAPSHOT}"
+
+  case "${snapshot_path}" in
     *.tar.lz4)
-      curl --fail --location "${SNAPSHOT}" | lz4 -dc | tar -x -C "${DATA_DIR}"
+      lz4 -dc "${SNAPSHOT_ARCHIVE}" | tar -x -C "${DATA_DIR}"
       ;;
     *.tar.gz|*.tgz)
-      curl --fail --location "${SNAPSHOT}" | tar -xz -C "${DATA_DIR}"
+      tar -xzf "${SNAPSHOT_ARCHIVE}" -C "${DATA_DIR}"
       ;;
     *.tar.zst|*.tar.zstd)
-      curl --fail --location "${SNAPSHOT}" | zstd -d | tar -x -C "${DATA_DIR}"
+      zstd -dc "${SNAPSHOT_ARCHIVE}" | tar -x -C "${DATA_DIR}"
       ;;
     *.tar)
-      curl --fail --location "${SNAPSHOT}" | tar -x -C "${DATA_DIR}"
+      tar -xf "${SNAPSHOT_ARCHIVE}" -C "${DATA_DIR}"
       ;;
     *)
       echo "Unknown snapshot archive format: ${SNAPSHOT}"
       exit 1
       ;;
   esac
+  rm -rf "${download_dir}"
   touch "${DATA_DIR}/.snapshot-restored"
 }
 
