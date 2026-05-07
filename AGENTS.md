@@ -19,6 +19,7 @@ See README.md for project overview, setup, ports, and runtime commands.
 - Run `docker compose --env-file default.env -f 0g.yml config` after compose/env edits.
 - Run `docker compose --env-file default.env -f 0g.yml -f rpc-shared.yml config` after port edits.
 - Run `docker compose --env-file default.env -f 0g.yml -f ext-network.yml config` after Traefik/network edits.
+- Run `docker compose --env-file default.env -f 0g.yml run --rm --no-deps geth sh -lc 'curl -4fsS --max-time 5 https://ifconfig.me/ip'` after P2P auto-IP changes on a Linux Docker host.
 - Run `cp default.env .env && ./ethd update --debug --non-interactive` after env or migration changes when Docker is available.
 - Use a Linux Docker host for image smoke tests; upstream binaries are linux/amd64.
 

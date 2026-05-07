@@ -54,9 +54,7 @@ __env_migrate() {
     return 0
   fi
 
-# Define old->new variable name mappings for migration
-# Example: __old_vars=( OLD_VAR_NAME )
-#          __new_vars=( NEW_VAR_NAME )
+# No renamed env vars currently require migration.
   __old_vars=( )
   __new_vars=( )
 
@@ -90,7 +88,7 @@ __env_migrate() {
   fi
 
 # shellcheck disable=SC2154
-  if [[ "${__keep_targets}" -eq 1 && "${__target_ver}" -le "${__source_ver}" ]]; then # No changes in template, do nothing
+  if [[ "${__keep_targets}" -eq 1 && "${__target_ver}" -le "${__source_ver}" ]]; then
     return 0
   fi
 
