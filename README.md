@@ -100,8 +100,6 @@ Production inventory can leave `P2P_EXTERNAL_IP` empty when the container has ou
 
 Only P2P ports are published by the base compose file. Use `rpc-shared.yml` for local-only RPC/debug ports and `ext-network.yml` for Traefik. Port variables set both the container listen port and the published host port.
 
-Service DNS is managed outside this repo. In CMF production, host-level DNS such as `rpc2-a.cryptomanufaktur.net` is maintained by the host stack, and service hostnames such as `0g-a.cryptomanufaktur.net` and `0gws-a.cryptomanufaktur.net` are Cloudflare CNAME records pointing to the host record.
-
 ## Commands
 
 | Command | Description |
