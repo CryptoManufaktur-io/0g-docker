@@ -13,7 +13,7 @@ WORKDIR /build
 
 RUN test "${TARGETARCH:-amd64}" = "amd64"
 RUN curl -fsSLo aristotle.tar.gz \
-      "https://github.com/0gfoundation/0gchain-Aristotle/releases/download/${ZEROG_VERSION}/aristotle-v${ZEROG_VERSION}.tar.gz" \
+      "https://github.com/0gfoundation/0gchain-Aristotle/releases/download/v${ZEROG_VERSION}/aristotle-v${ZEROG_VERSION}.tar.gz" \
     && tar -xzf aristotle.tar.gz \
     && mv "aristotle-v${ZEROG_VERSION}" /opt/0g
 
