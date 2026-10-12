@@ -98,7 +98,7 @@ Production inventory can leave `P2P_EXTERNAL_IP` empty when the container has ou
 | `CL_P2P_PORT` | `0gchaind` | `26656` | P2P TCP |
 | `CL_METRICS_PORT` | `0gchaind` | `26660` | Prometheus metrics |
 
-Only P2P ports are published by the base compose file. Use `rpc-shared.yml` for local-only RPC/debug ports and `ext-network.yml` for Traefik. Port variables set both the container listen port and the published host port.
+Only P2P ports are published by the base compose file. Use `rpc-shared.yml` for local-only RPC/debug ports and `ext-network.yml` for Traefik (it makes the external Traefik network the only network for all services, so Prometheus service discovery scrapes the reachable address; 0gchaind then reaches geth by container name `${PROJECT_NAME}-geth`, because other chains on that network also have a service named `geth`). Port variables set both the container listen port and the published host port.
 
 ## Commands
 

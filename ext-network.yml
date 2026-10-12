@@ -1,15 +1,23 @@
-services:
-  geth:
-    networks:
-      - default
-      - ext-network
+# External network configuration for Traefik integration
+# Usage: COMPOSE_FILE=0g.yml:ext-network.yml in .env
+#
+# Make the external Traefik network the only network for every service (the same
+# pattern the other *-docker repos use). With a second internal network, Prometheus
+# docker service discovery only matches the first network of a container
+# (match_first_network), which here was the internal 0g_default network that
+# Prometheus cannot reach, so geth and 0gchaind were scraped with "context deadline
+# exceeded" (up == 0).
 
+services:
   0gchaind:
-    networks:
-      - default
-      - ext-network
+    environment:
+      # The shared Traefik network is used by every chain on the host, and other
+      # chains also have a service called "geth" there, so the bare service name is
+      # ambiguous. The container name is unique per project, so use it to reach the
+      # engine API.
+      GETH_ENGINE_HOST: ${PROJECT_NAME:-0g}-geth
 
 networks:
-  ext-network:
+  default:
+    name: ${DOCKER_EXT_NETWORK:-traefik_default}
     external: true
-    name: ${DOCKER_EXT_NETWORK}
